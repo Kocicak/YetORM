@@ -16,81 +16,81 @@ use Nette\Database\Connection as NdbConnection;
 class Transaction
 {
 
-	/** @var NdbConnection */
-	private $connection;
+    /** @var NdbConnection */
+    private $connection;
 
-	/** @var array */
-	private static $transactionCounter = [];
-
-
-	/** @param  NdbConnection $connection */
-	public function __construct(NdbConnection $connection)
-	{
-		$this->connection = $connection;
-
-		if (!isset(self::$transactionCounter[$dsn = $this->getDsnKey()])) {
-			self::$transactionCounter[$dsn] = 0;
-		}
-	}
+    /** @var array */
+    private static $transactionCounter = [];
 
 
-	/**
-	 * @param  \Closure $callback
-	 * @return mixed
-	 */
-	public function transaction(\Closure $callback)
-	{
-		try {
-			$this->begin();
-				$return = $callback();
-			$this->commit();
+    /** @param NdbConnection $connection */
+    public function __construct(NdbConnection $connection)
+    {
+        $this->connection = $connection;
 
-			return $return;
-
-		} catch (\Exception $e) {
-			$this->rollback();
-			throw $e;
-		}
-	}
+        if (!isset(self::$transactionCounter[$dsn = $this->getDsnKey()])) {
+            self::$transactionCounter[$dsn] = 0;
+        }
+    }
 
 
-	/** @return void */
-	public function begin()
-	{
-		if (self::$transactionCounter[$this->getDsnKey()]++ === 0) {
-			$this->connection->beginTransaction();
-		}
-	}
+    /**
+     * @param \Closure $callback
+     * @return mixed
+     */
+    public function transaction(\Closure $callback)
+    {
+        try {
+            $this->begin();
+            $return = $callback();
+            $this->commit();
+
+            return $return;
+
+        } catch (\Exception $e) {
+            $this->rollback();
+            throw $e;
+        }
+    }
 
 
-	/** @return void */
-	public function commit()
-	{
-		if (self::$transactionCounter[$dsn = $this->getDsnKey()] === 0) {
-			throw new Exception\InvalidStateException('No transaction started.');
-		}
-
-		if (--self::$transactionCounter[$dsn] === 0) {
-			$this->connection->commit();
-		}
-	}
+    /** @return void */
+    public function begin()
+    {
+        if (self::$transactionCounter[$this->getDsnKey()]++ === 0) {
+            $this->connection->beginTransaction();
+        }
+    }
 
 
-	/** @return void */
-	public function rollback()
-	{
-		if (self::$transactionCounter[$dsn = $this->getDsnKey()] !== 0) {
-			$this->connection->rollBack();
-		}
+    /** @return void */
+    public function commit()
+    {
+        if (self::$transactionCounter[$dsn = $this->getDsnKey()] === 0) {
+            throw new Exception\InvalidStateException('No transaction started.');
+        }
 
-		self::$transactionCounter[$dsn] = 0;
-	}
+        if (--self::$transactionCounter[$dsn] === 0) {
+            $this->connection->commit();
+        }
+    }
 
 
-	/** @return string */
-	private function getDsnKey()
-	{
-		return sha1($this->connection->getDsn());
-	}
+    /** @return void */
+    public function rollback()
+    {
+        if (self::$transactionCounter[$dsn = $this->getDsnKey()] !== 0) {
+            $this->connection->rollBack();
+        }
+
+        self::$transactionCounter[$dsn] = 0;
+    }
+
+
+    /** @return string */
+    private function getDsnKey()
+    {
+        return sha1($this->connection->getDsn());
+    }
 
 }

@@ -83,7 +83,7 @@ class EntityCollection implements \Iterator, \Countable
 			$this->data = [];
 			foreach ($this->selection as $row) {
 				$record = $this->refTable === NULL ? $row : $row->ref($this->refTable, $this->refColumn);
-				$this->data[] = NCallback::invoke($factory, $record);
+				$this->data[] = $factory($record);
 			}
 		}
 	}
